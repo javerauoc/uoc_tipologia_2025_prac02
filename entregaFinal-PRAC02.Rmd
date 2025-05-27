@@ -1,0 +1,1084 @@
+---
+title: "Tipologia-PRAC02"
+author: "GALVEZ BAIXENCH, CONCEPCIÓN i VERA NIETO, JUAN ANTONIO"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    extra_dependencies: ["booktabs"]
+kinitr:
+  opts_chunk:
+    message:FALSE
+    warning:FALSE
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r ,echo=FALSE,include=FALSE}
+
+if(!require(flextable)) {
+  install.packages(flextable)
+}
+library(flextable)
+
+```
+
+```{r ,echo=FALSE,include=FALSE}
+
+if(!require(dplyr)) {
+  install.packages("dplyr")
+}
+library(dplyr)
+
+```
+
+```{r,echo=FALSE,include=FALSE}
+
+
+if(!require(ggplot2)) {
+  install.packages("ggplot2")
+}
+library(ggplot2)
+
+
+if(!require(corrplot)) {
+  install.packages("corrplot")
+}
+library(corrplot)
+
+if(!require(stringr)) {
+  install.packages("stringr")
+}
+library(stringr)
+
+if(!require(knitr)) {
+  install.packages("knitr")
+}
+library(knitr)
+
+if(!require(xml2)) {
+  install.packages("xml2")
+}
+library(xml2)
+
+
+if(!require(tidyr)){
+  
+    install.packages("tidyr")
+}
+library(tidyr)
+
+
+if(!require(stringr)){
+    install.packages("stringr")
+}
+library(stringr)
+
+
+
+if(!require(forcats)){
+    install.packages("forcats")
+}
+library(forcats)
+
+            
+```
+
+**COMENTARIS PREVIS A LA RESOLUCIÓ DE LA PRÀCTICA**
+
+El dataset escollit per a realitzar aquesta segona pràctica no és el
+resultat de la primera pràctica, com es demanava en aquest enunciat.
+Això és degut a que quan es va realitzar la primera pràctica no es va
+tenir en compte que el dataset resultant hauria de tenir certes
+característiques que el permetéssin fer-ho servir en aquesta pràctica
+com la neteja de les dades, la creació de diferents models
+d'aprenentatge (tant supervisats com no supervisats), etc. Per això, i
+un cop concertat a través del fòrum de l'assignatura amb la professora
+la possibilitat de fer-ne servir d'altres datasets diferents, hem fet
+servir el següent conjunt de dades per poder realitzar completament tots
+els exercicis d'aquesta pràctica:
+
+[*https://www.askamanager.org/2021/04/how-much-money-do-you-make-4.html*](https://www.askamanager.org/2021/04/how-much-money-do-you-make-4.html){.uri}
+
+[*https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/
+edit?resourcekey=&pli=1&gid=1625408792#gid=1625408792*](https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey=&pli=1&gid=1625408792#gid=1625408792){.uri}
+
+## Pegunta 1.​Descripció del dataset.
+
+1.  Perquè és important i quina pregunta/problema pretén respondre?
+
+2.  Resumeix breument les variables que el formen i el seu tamany.
+
+**RESPOSTA:**
+
+**Descripció del dataset**
+
+Aquest dataset conté respostes d’una enquesta salarial amb 28.141
+registres i 18 variables. Les dades han estat recollides d’un formulari
+en línia disponible a
+[*https://www.askamanager.org/2023/04/how-much-money-do-you-make-6.html*](https://www.askamanager.org/2023/04/how-much-money-do-you-make-6.html){.uri}
+i representen informació relacionada amb la situació laboral,
+experiència, educació i compensació econòmica de professionals arreu del
+món.
+
+L'enquesta recull informació a través de tres tipus de preguntes:
+
+1.  Preguntes de selecció única.
+2.  Preguntes de selecció múltiple
+3.  Preguntes de text lliure
+
+No totes les preguntes son obligatòries de contestar.
+
+**Importància del dataset** Aquest conjunt de dades és important perquè
+permet:
+
+1.  Analitzar diferències salarials segons sector, gènere, ubicació
+    geogràfica, experiència i educació.
+
+2.  Identificar desigualtats o tendències en el mercat laboral.
+
+**Pregunta central que pretén respondre:**
+
+*Quins factors influeixen en la variació dels salaris entre
+professionals de diferents perfils, gènere, raça i educació?*
+
+**Resum de les variables**
+
+| Variable original | Descripció |
+|------------------------------------|------------------------------------|
+| Timestamp | Data i hora de la resposta |
+| How old are you? | Franja d’edat |
+| What industry do you work in? | Sector laboral |
+| Job title | Títol del lloc de treball |
+| If your job title needs additional context | Informació opcional sobre el lloc que ocupa |
+| What is your annual salary? | Salari anual |
+| How much additional monetary compensation | Compensació addicional (bonus, hores extra, etc.) |
+| Please indicate the currency | Moneda |
+| Other currency | Especificació si es marca “Other” a l’anterior |
+| Income context | Context extra sobre el salari (opcional) |
+| What country do you work in? | País de treball |
+| US State | Estat nord-americà (si aplica) |
+| City | Ciutat de treball |
+| Years experience in field | Anys d’experiència en el camp específic |
+| Years experience overall | Anys d’experiència total |
+| Education level | Nivell d’educació |
+| Gender | Gènere |
+| Race | Raça/etnicitat |
+
+**OBS:** En aquest informe només es mostrar el codi i el resultat
+necessari de les visualitzacions més importants, deixant la resta de
+comentaris de com s'ha fet dins del Rmarkdown disponible al GitHub del
+projecte.
+
+```{r eliminem_entorn_anterior ,echo=FALSE,include=FALSE}
+rm(list=ls())
+
+```
+
+```{r llegim_arxiu,echo=FALSE,include=FALSE}
+
+if(!require(readr)) {
+  install.packages("readr")
+}
+library(readr)
+```
+
+```{r lectura_arxiu ,echo=TRUE, include=FALSE}
+
+## Llegim arxiu
+salaris_df<-read_csv('salary_survey_responses.csv',quote="\"",na=c("","NA"))
+
+```
+
+Un cop llegit l'arxiu. mirarem el nom de les columnes i dimensions del dataset
+carregat.
+
+```{r dimensio_i_noms_columnes_inicials,echo=FALSE,include=TRUE}
+## dimension del dataset
+print(dim(salaris_df))
+## nom de les columnes 
+colnames(salaris_df)
+```
+
+Per una millor visualització, modifiquem el nom de les columnes
+(features)
+
+```{r}
+#{r canviem nom columnes, echo=FALSE}
+nova_capçalera <- c("timestamp", "edat"
+                    , "sector", 
+                    "lloc_feina","comentaris_lloc","salari_temps_complert",
+                    "extres","moneda","altres_monedes","comentaris_extres",
+                    "pais","US_estat","ciutat","experiencia_general_interval",
+                    "experiencia_especifica_interval","nivell_estudis",
+                    "genere","raca")
+
+salaris_df <- rbind(nova_capçalera, salaris_df)
+colnames(salaris_df) <- as.character(unlist(salaris_df[1, ]))
+salaris_df <- salaris_df[-1, ]
+```
+
+```{r}
+colnames(salaris_df)
+```
+
+```{r ,echo=FALSE,include=FALSE}
+rm(nova_capçalera)
+
+```
+
+Un cop carregat el dataset, farem una primera ullada a les dades per
+fer-nos una idea. Ho dividirem en 4 taules.
+
+```{r ,echo=FALSE}
+library(knitr)
+
+# Dividim el dataframe en 4 parts
+salaris_df_1 <- salaris_df[, 1:4]   # Primeres 4 columnes
+salaris_df_2 <- salaris_df[, 5:10]  # Columnes 5 a 10
+salaris_df_3 <- salaris_df[, 11:13] # Columnes 11 a 13
+salaris_df_4 <- salaris_df[, 14:18] # Últimes 4 columnes
+
+```
+Taula 1
+```{r, results='asis', echo=FALSE}
+
+if (interactive()) {
+  View(head(salaris_df))
+}else {
+knitr::asis_output(kable(head(salaris_df_1), format = "latex", booktabs = TRUE))
+}
+
+```
+Taula 2
+```{r, results='asis', echo=FALSE}
+if (!interactive()) {
+knitr::asis_output(kable(head(salaris_df_2), format = "latex", booktabs = TRUE))
+}
+
+```
+Taula 3
+```{r, results='asis', echo=FALSE}
+if (!interactive()) {
+knitr::asis_output(kable(head(salaris_df_3), format = "latex", booktabs = TRUE))
+}
+```
+Taula 4
+```{r, results='asis', echo=FALSE}
+
+if (!interactive()) {
+knitr::asis_output(kable(head(salaris_df_4), format = "latex", booktabs = TRUE))
+}
+
+```
+I extreurem un petit resum de les columnes, valors únics, tipus de dades, NAs inicials.
+```{r, echo=FALSE,include=FALSE}
+if(!require(lobstr)) {
+  install.packages("lobstr")
+}
+library(lobstr)
+```
+
+```{r ullada_a_salaris_df, echo=FALSE, results='asis'}
+
+resum <- data.frame(
+  #Columna = names(salaris_df),
+  Num_NAs = sapply(salaris_df, function(x) sum(is.na(x))),
+  Mida_Bytes = sapply(salaris_df, function(x) obj_size(x)),
+  Valors_Unics = sapply(salaris_df, function(x) length(unique(na.omit(x)))),
+  Tipus_Dada = sapply(salaris_df, class)
+)
+
+if (interactive()) {
+  View(resum)
+} else {
+  knitr::asis_output(kable(resum, format = "latex", booktabs = TRUE))
+}
+
+rm(resum)
+#str(salaris_df)
+```
+
+En aquest punt, ja podem veure que el dataset conté molta informació que no és correcte
+degut a la introducció manual de dades que permet el formulari en moltes preguntes.  
+
+
+## Pegunta 2.Integració, selecció de dades d'interés
+
+1.  Selecció dades d'interés
+
+2.  Mostrar resum variables.
+
+
+**RESPOSTA:**
+
+
+* Integració/fusió de múltiples datasets: No apliquem can fusió ni integració al
+tenir només una font de dades.
+ 
+* Selecció de les dades: 
+
+El dataset és una enquesta orientada als Estats Units, però és possible
+que hi hagin altres països presents. Fem una petita exploració inicial, un 
+cop hem passat tot a MAJÚSCULES i sense espais.
+
+```{r f, echo=FALSE, results='asis'}
+library(dplyr)
+
+salaris_df[] <- lapply(salaris_df, function(x) {
+  if (is.character(x)) {
+    x <- trimws(x)       
+    x <- toupper(x)      
+  }
+  return(x)
+})
+
+
+# Comptem el nombre de registres per país i mostrem només els 10 amb més registres
+top10_pais <- salaris_df %>%
+  count(pais) %>%
+  slice_max(n, n = 10)
+```
+
+```{r echo=FALSE}
+# Mostrem el resultat
+print(top10_pais)
+rm(top10_pais)
+
+
+```
+Com podem veure, la majoria de registres es corresponen als Estats Units, així que
+farem l'estudi dels salaris dins d'aquest païs. Per fer-ho, unificarem
+el nom del païs i eliminarem la resta de registres i eliminarem
+la variable pais
+
+```{r unifiquem_noms_paisos, echo=FALSE,include=FALSE}
+library(dplyr)
+
+
+valores_a_unificar <- c("U.S", "U.S.","U.S.A.", "U.S.A","USA","U.S>","US")
+salaris_df$pais <- ifelse(salaris_df$pais %in% valores_a_unificar, "USA", salaris_df$pais)
+salaris_df$pais <- gsub(
+  pattern = "(?i)^\\s*(UNITED|UNITE[DFR]|UNITER|UNITEED)\\s*STA\\w*(.*)$", 
+  replacement = "USA", 
+  x = salaris_df$pais, 
+  perl = TRUE
+)
+
+# Eliminem els registres que no siguin dels EUA
+salaris_usa <- salaris_df %>%
+  filter(pais == "USA")
+
+salaris_df<-salaris_usa
+rm (salaris_usa)
+```
+
+```{r , echo=FALSE,include=FALSE}
+# Eliminem la columna pais
+salaris_df <- salaris_df %>%
+  select(-pais)
+
+```
+
+
+També eliminarem la variable US_estat, ciutat, moneda (l'estudi
+serà pel Estats Units), i els camps opcionals de dades
+del formulari com comentaris_lloc,comentaris_extres,altres_monedes
+```{r , echo=FALSE,include=FALSE}
+salaris_df <- salaris_df %>%
+  select(-ciutat,-US_estat,-moneda,-comentaris_lloc,-comentaris_extres,-altres_monedes)
+
+```
+
+Ara ens fixarem ara amb la variable sector, que l'agruparem per poder veure els
+sectors més representats:
+
+```{r , echo=FALSE,include=FALSE}
+
+# Comptar la freqüència de cada sector
+sectors_importants <- salaris_df %>%
+  count(sector, sort = TRUE) %>%
+  top_n(10, n)
+
+# Filtrar el dataframe per incloure només els sectors més comuns
+salaris_filtrat <- salaris_df %>%
+  filter(sector %in% sectors_importants$sector)
+```
+
+```{r , echo=FALSE,include=TRUE}
+# Mostrar els sectors seleccionats
+print(sectors_importants)
+
+
+```
+
+Decidim quedar-nos amb els 8 més importants
+
+Tornarem a visualitzar la taula de nou:
+
+```{r, echo=FALSE,include=TRUE}
+
+# Carregar la llibreria necessària
+library(dplyr)
+
+# Comptar la freqüència de cada sector i seleccionar els 10 més comuns
+sectors_importants <- salaris_df %>%
+  count(sector, sort = TRUE) %>%
+  top_n(8, n)
+
+# Filtrar el dataframe per incloure només els sectors més freqüents
+salaris_filtrat <- salaris_df %>%
+  filter(sector %in% sectors_importants$sector)
+
+# Mostrar els sectors seleccionats
+print(sectors_importants)
+rm(sectors_importants)
+salaris_df<-salaris_filtrat[]
+rm(salaris_filtrat)
+```
+  
+  
+**PREGUNTA 3. Neteja de les dades**  
+
+**Avaluar duplicats**: Mirem si hi han duplicats de dades:
+
+```{r, echo=TRUE,include=TRUE}
+duplicats <- salaris_df[duplicated(salaris_df),]
+print (nrow(duplicats))
+
+```
+
+**Avaluar elements buits(NAs)**:
+
+Ara busquem si hi han elements buits, dades amb zero valors  o altres valors numèrics que
+indiquin la pèrdua de dades. Per fer-ho, visualitzarem una taula
+amb tots els NAs i el percentatge que significa dins de les dades
+Evaluem els valors NAs del dataset. 
+
+```{r avaluacio_inicial_NA, echo=FALSE, message=FALSE, warning=FALSE}
+if(!require(knitr)) {
+  install.packages("knitr")
+}
+library(knitr)
+
+## Funció que ens servirà per visualitzar els valors NAs
+
+imprimir_na_summary <- function(df, caption = "Nombre i percentatge de valors NA per columna") {
+  
+  # Assegura't de tenir carregats els paquets necessaris
+  require(dplyr)
+  require(knitr)
+  
+  n_total <- nrow(df)
+  
+  na_summary <- data.frame(
+    Columna = names(df),
+    N_NA = colSums(is.na(df))
+  ) %>%
+    mutate(
+      Percentatge = round((N_NA / n_total) * 100, 2)
+    ) %>%
+    arrange(desc(N_NA))
+  
+  # Retorna la taula bonica amb kable
+  #kable(na_summary, caption = caption, format = "latex", booktabs = TRUE)))
+  knitr::asis_output(kable(head(na_summary), format = "latex", booktabs = TRUE))
+}
+
+```
+
+
+```{r , echo=FALSE, results='asis'}
+if (interactive()) {
+    imprimir_na_summary(salaris_df)
+
+
+}else {
+#knitr::asis_output(kable(head(salaris_df_1), format = "latex", booktabs = TRUE))
+  imprimir_na_summary(salaris_df)
+}
+
+
+
+
+
+```
+
+
+**Imputació de valors:**   
+
+De les dades de la taula, podem observar un nombre molt elevats de  extres	(26%) 
+No es tracten de valors faltants en sí, sinó que l'enquestat no feia hores extres.
+
+Imputarem el valor de zero a aquests als valors faltants.
+
+
+```{r passem_a_numeric_salari_i_extres, echo=TRUE, include=FALSE}
+salaris_df$salari_temps_complert <- as.numeric(salaris_df$salari_temps_complert)
+salaris_df$extres<- as.numeric(salaris_df$extres)
+salaris_df$extres[is.na(salaris_df$extres)] <- 0
+
+```
+
+Ara passarem a imputar els altres valors amb mètodes probabilístics. En aquest 
+cas, farem servir KNN del paquet VIM.
+
+```{r , echo=FALSE, include=FALSE}
+if(!require(VIM)) {
+  install.packages("VIM")
+}
+library(VIM)
+```
+
+
+```{r, echo=TRUE,include=TRUE}
+kNN1.salaris_df<-kNN(salaris_df, k=3)
+```
+
+
+Veiem el resultat final
+
+```{r, echo=FALSE, include=TRUE}
+
+imprimir_na_summary(kNN1.salaris_df)
+```
+
+
+**Eliminem les variables d'imputació (xxx_imp)**  
+que son produïdes per la funció kNN1 
+(ens indica a quines columnes s'han hagut d'imputar valors).
+
+
+Eliminem les variables d'imputació (xxx_imp) que son produïdes per la funció kNN1 
+(ens indica a quines columnes s'han hagut d'imputar valors)
+
+
+```{r}
+
+kNN1.salaris_df <- kNN1.salaris_df[, !grepl("_imp$", names(kNN1.salaris_df))]
+salaris_df<-kNN1.salaris_df[]
+rm(kNN1.salaris_df)
+
+```
+
+**Variable moneda:**  
+
+Unifiquem la moneda a EUROS
+
+```{r}
+# Factors de conversió a EUR
+
+factor_conversio=0.92
+#
+# Conversió
+
+# Creem la nova columna amb el salari convertit a euros
+salaris_df <- salaris_df %>%
+  mutate(salari_temps_complert_euros = as.numeric(salari_temps_complert) * factor_conversio)
+
+salaris_df <- salaris_df %>%
+  mutate(extres_euros = as.numeric(extres) * factor_conversio)
+
+
+salaris_df <- subset(salaris_df, select = -salari_temps_complert)
+salaris_df <- subset(salaris_df, select = -extres)
+rm(factor_conversio)
+
+```
+
+
+- Modifiquem el format variable timestamp: No ens interessa ni el día ni la hora
+de l'enquesta, només ens quedarem amb el mes i l'any
+
+
+```{r}
+salaris_df$timestamp <- as.POSIXct(salaris_df$timestamp, format = "%m/%d/%Y %H:%M:%S")
+
+salaris_df$mes_any <- as.factor(format(salaris_df$timestamp, "%m/%Y"))
+salaris_df <- subset(salaris_df, select = -timestamp)
+
+
+
+```
+- Passem a factors la resta de variables. Fixarem un màxim
+de 15 categries per variable
+
+
+```{r}
+
+
+library(dplyr)
+library(forcats)
+library(dplyr)
+library(forcats)
+
+salaris_df <- salaris_df %>%
+  mutate(across(
+    .cols = where(~ !is.numeric(.x)),
+    .fns = ~ fct_lump(as.factor(.x), n = 15)
+  ))
+
+
+```
+
+
+##Valors extrems
+
+Començarem l'estudi de possibles outliers.Per fer-ho, mirarem els quartils de
+les variables numèriques.
+
+
+```{r}
+#, "salari_eur"
+
+summary(salaris_df[, sapply(salaris_df, is.numeric)])
+
+```
+Podem veure que:
+
+
+### **Salari a temps complet (`salari_temps_complert_euros`)**
+- **Minim:** 0  Hi ha casos amb salari 0 (pot ser errors o persones sense salari base). Assumirem 
+que l'enquesta tothom té salari, així que els considerarem com errors
+- **1r quartil (Q1):** 51.713 € → El **25% més baix** dels registres guanya **menys de 51.713 €**.
+- **Mediana (Q2):** 72.023 € → La meitat dels registres tenen un salari **inferior a 72.023 €** i l’altra meitat superior.
+- **Mitjana:** 85.176 € → El salari **promig** és 85.176 €,  superior a la mediana. Això ens indica que hi han valors alts que estàn
+afectant a la mitjana (possibles outliers).
+- **3r quartil (Q3):** 103.040 € → El **25% més alt** guanya **més de 103.040 €**.
+- **Màxim:** 9.200.000 € → Hi ha un salari extremadament alt, que podria ser una dada errònia o corresponent a un alt directiu.
+
+### **Extres (`extres_euros`)**
+- **Minim:** 0 Hi ha persones que no tenen extres (el considerem normal)
+- **1r quartil (Q1):** 0. El **25% més baix** no té cap extra.
+- **Mediana (Q2):** 0 .La meitat dels registres no reben extres. Això vol dir que més de la meitat
+dels enquestats no reben hores extres
+- **Mitjana:** 8.727 € → Tot i que la mediana és **0**, la mitjana és **8.727 €**, indicant que algunes persones tenen extres alts que pugen el promig (seria
+un cas similar a l'anterior)
+- **3r quartil (Q3):** 5.520 € → El **25% superior** rep més de 5.520 € en extres.
+- **Màxim:** 1.380.000 € → Existeix un registre massa alt (o un cas especial o una dada incorrecta.)
+
+La distribució dels ingressos extres sembla **molt asimètrica**, amb una **majoria de registres a 0**, però amb alguns casos amb **valors molt alts** que eleven la mitjana. Analitzarem els possibles outliers que puguin 
+distorsionar l'anàlisi.
+
+
+Farem una exploració visual;
+
+```{r}
+library(ggplot2)
+library(patchwork) # Paquet per combinar gràfics
+
+# Creem els dos boxplots
+boxplot_salari <- ggplot(salaris_df, aes(y = salari_temps_complert_euros)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.6) +
+  labs(title = "Distribució del salari a temps complet (Euros)",
+       y = "Salari (€)") +
+  theme_minimal()
+
+boxplot_extres <- ggplot(salaris_df, aes(y = extres_euros)) +
+  geom_boxplot(fill = "tomato", alpha = 0.6) +
+  labs(title = "Distribució dels extres (Euros)",
+       y = "Extres (€)") +
+  theme_minimal()
+
+# Combinar els dos gràfics en una sola figura
+boxplot_salari + boxplot_extres
+
+```
+```{r}
+ggplot(salaris_df, aes(x = salari_temps_complert_euros)) +
+  geom_histogram(binwidth = 5000, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma del salari a temps complet (Euros)",
+       x = "Salari (€)",
+       y = "Nombre de registres") +
+  theme_minimal()
+
+```
+
+
+Com podem veure, els boxplots no apareixen correctament dibuixats. Això és degut 
+a l'existència de valors massa grans. Farem una coversió logarítmca de les dades
+
+```{r}
+ggplot(salaris_df, aes(y = log10(salari_temps_complert_euros))) +
+  geom_boxplot(fill = "steelblue", alpha = 0.6) +
+  labs(title = "Distribució del salari a temps complet (log Euros)",
+       y = "log(Salari €)") +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+
+ggplot(salaris_df, aes(y = salari_temps_complert_euros)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.6, outlier.shape = 16) + # Afegim forma als outliers
+  coord_cartesian(ylim = c(0, 300000)) + # Ajustem el límit de l'eix Y
+  labs(title = "Distribució del salari a temps complet (Euros)",
+       y = "Salari (€)") +
+  theme_minimal()
+
+```
+
+**Variable salari:**
+
+La teva sortida mostra un valor màxim extremadament alt (4.080e+09), cosa que podria indicar la presència d'outliers o fins i tot errors en les dades. Això afecta la mitjana (2.319e+05), que és molt més alta que la mediana (6.808e+04), suggerint que alguns valors extrems estan distorsionant la distribució.
+
+Visualment, podem veure com la representació ens demostra presència outliers.
+
+```{r}
+
+numeric_cols <- sapply(salaris_df, is.numeric)
+df_numeric  <- salaris_df[, numeric_cols]
+
+# 2. Aplicar boxplot.stats a cada variable numèrica amb lapply
+stats_list <- lapply(df_numeric, boxplot.stats)
+
+# Visualitzar la llista amb els resultats (inclou els outliers per cada variable)
+print(stats_list)
+
+# 3. Dibuixar els boxplots de totes les variables numèriques en una única figura
+boxplot(df_numeric,
+        main = "Boxplots de les variables numèriques",
+        las = 2,           # Rota les etiquetes per millorar la visualització (verticals)
+        col = "skyblue",   # Color de les caixes (opcional)
+        border = "blue")   # Color dels contorns (opcional)
+
+```
+```{r}
+library(ggplot2)
+
+# Histograma del salari temps complet
+ggplot(salaris_df, aes(x = salari_temps_complert_euros)) +
+  geom_histogram(bins = 8, fill = "skyblue", color = "black") +
+  labs(title = "Histograma del Salari Temps Complert", 
+       x = "Salari en Euros", 
+       y = "Freqüència") +
+  theme_minimal()
+
+# Histograma dels extres
+ggplot(salaris_df, aes(x = extres_euros)) +
+  geom_histogram(bins = 8, fill = "red", color = "black") +
+  labs(title = "Histograma dels Extres en Euros", 
+       x = "Extres en Euros", 
+       y = "Freqüència") +
+  theme_minimal()
+
+```
+
+
+El nostre estudi es centrarà en sous que es considerin "més normals", valors
+del rang de [15.000,150.000] euros. 
+
+
+```{r}
+num_regs_baix_salari <- sum(salaris_df$salari_temps_complert_euros < 15000, na.rm = TRUE)
+num_regs_alt_salari <- sum(salaris_df$salari_temps_complert_euros > 150000, na.rm = TRUE)
+
+print(paste("Registres < 15.000 euros:", num_regs_baix_salari))
+print(paste("Registres > 150.000 euros:", num_regs_alt_salari))
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+salaris_df_filtrat <- salaris_df %>%
+  filter(salari_temps_complert_euros >= 15000 & salari_temps_complert_euros <= 150000)
+
+```
+
+
+
+Tornem a avaluar els resultats:
+```{r}
+#, "salari_eur"
+
+summary(salaris_df_filtrat[, sapply(salaris_df_filtrat, is.numeric)])
+
+```
+
+
+```{r boxplot, fig.width=5, fig.height=4}
+salaris_df<-salaris_df_filtrat[]
+rm(salaris_df_filtrat)
+
+numeric_cols <- sapply(salaris_df, is.numeric)
+df_numeric  <- salaris_df[, numeric_cols]
+
+# 2. Aplicar boxplot.stats a cada variable numèrica amb lapply
+stats_list <- lapply(df_numeric, boxplot.stats)
+
+# Visualitzar la llista amb els resultats (inclou els outliers per cada variable)
+print(stats_list)
+
+# 3. Dibuixar els boxplots de totes les variables numèriques en una única figura
+boxplot(df_numeric,
+        main = "Boxplots de les variables numèriques",
+        las = 2,           # Rota les etiquetes per millorar la visualització (verticals)
+        col = "skyblue",   # Color de les caixes (opcional)
+        border = "blue")   # Color dels contorns (opcional)
+
+```
+Eliminems el outliers
+
+```{r}
+library(dplyr)
+
+# Calcular Q1, Q3 i IQR per a cada columna
+Q1_salari <- quantile(salaris_df$salari_temps_complert_euros, 0.25, na.rm = TRUE)
+Q3_salari <- quantile(salaris_df$salari_temps_complert_euros, 0.75, na.rm = TRUE)
+IQR_salari <- Q3_salari - Q1_salari
+
+Q1_extres <- quantile(salaris_df$extres_euros, 0.25, na.rm = TRUE)
+Q3_extres <- quantile(salaris_df$extres_euros, 0.75, na.rm = TRUE)
+IQR_extres <- Q3_extres - Q1_extres
+
+# Definir límits
+lim_inf_salari <- max(0, Q1_salari - 1.5 * IQR_salari)
+lim_sup_salari <- Q3_salari + 1.5 * IQR_salari
+
+lim_inf_extres <- max(0, Q1_extres - 1.5 * IQR_extres)
+lim_sup_extres <- Q3_extres + 1.5 * IQR_extres
+
+# Filtrar el dataframe eliminant *outliers* en les dues columnes
+salaris_df_clean <- salaris_df %>%
+  filter(salari_temps_complert_euros >= lim_inf_salari & salari_temps_complert_euros <= lim_sup_salari,
+         extres_euros >= lim_inf_extres & extres_euros <= lim_sup_extres)
+
+# Comprovar la distribució després de la neteja
+summary(salaris_df_clean[, c("salari_temps_complert_euros", "extres_euros")])
+salaris_df<-salaris_df_clean[]
+rm(salaris_df_clean)
+
+```
+
+Finalment, construim una nova variable amb el salari total. Ens servirà com a variable
+objectiu en posteriors anàlisis. 
+
+També farem un altre columna amb el logaritmr del salari. Aquesta variable la farem
+servir en els models d'aprenentatge posteriors perque, donat la disparitat de salaris, és 
+preferible entrenar els models fent servir la versió logarítmica del sou.
+
+```{r}
+salaris_df <- salaris_df %>%
+  mutate(sou_total = salari_temps_complert_euros + extres_euros)
+
+salaris_df$sou_total_log <- log(salaris_df$sou_total + 1)
+
+
+# Calcular Q1, Q3 i IQR per a cada columna
+Q1_salari <- quantile(salaris_df$sou_total, 0.25, na.rm = TRUE)
+Q3_salari <- quantile(salaris_df$sou_total, 0.75, na.rm = TRUE)
+IQR_salari <- Q3_salari - Q1_salari
+
+
+# Definir límits
+lim_inf_salari <- max(0, Q1_salari - 1.5 * IQR_salari)
+lim_sup_salari <- Q3_salari + 1.5 * IQR_salari
+
+# Filtrar el dataframe eliminant *outliers* en les dues columnes
+salaris_df_clean <- salaris_df %>%
+  filter(sou_total >= lim_inf_salari & sou_total <= lim_sup_salari)
+```
+
+
+
+```{r}
+# Comprovar la distribució després de la neteja
+summary(salaris_df_clean[, c("sou_total")])
+salaris_df<-salaris_df_clean[]
+
+
+salaris_df <- salaris_df_clean[]
+rm(salaris_df_clean)
+
+
+## Eliminem aquelles columnes que s'han fet servir per construir la variable
+## sou total
+
+salaris_df<-salaris_df %>% select(-salari_temps_complert_euros,-extres_euros)
+
+## Farem un dataset específic per cada part de la pràctica
+
+salaris_df_no_sup <- salaris_df[]
+salaris_df_sup <- salaris_df[]
+salaris_df_hipotesis <- salaris_df[]
+
+
+salaris_df_no_sup<-salaris_df_no_sup %>% select(-sou_total_log)
+
+
+```
+
+
+
+
+
+##PREGUNTA 4: MODEL SUPERVISAT I NO SUPERVISAT.##     
+
+## MODEL SUPERVISAT: REGRESSIÓ LINEAL  
+
+## Presentació visual de la variable objectiu
+
+``` {r fig.width=6, fig.height=3}
+ggplot(salaris_df, aes(x = sou_total)) +
+  geom_histogram(fill = "skyblue", bins = 30) +
+  labs(title = "Distribució del sou total", x = "Sou total", y = "Freqüència") +
+  theme_minimal()
+
+```
+
+## Conversió de variables categòriques a numèriques 
+
+Això és necesssari per poder-se processar pel model de regressió lineal
+
+```{r}
+
+salaris_df_ml <- salaris_df_sup %>%
+  mutate(across(where(is.factor), as.numeric))
+
+## Eliminem moneda i pais perque no ens aporta al model
+
+salaris_df_reduit <- salaris_df_ml %>%
+  select(-mes_any, -sou_total)
+
+# Crear el nou model de regressió lineal
+model_reduit <- lm(sou_total_log ~ ., data = salaris_df_reduit)
+
+# Resum del nou model
+summary(model_reduit)
+
+
+
+```
+
+
+
+```{r}
+
+salaris_df_reduit_sense_estudis <- salaris_df_reduit %>%
+  select(-nivell_estudis)
+
+model_refinat  <- lm(sou_total_log ~ ., data = salaris_df_reduit_sense_estudis)
+
+summary(model_refinat)
+
+
+```
+
+- Avaluacions del model
+
+```{r}
+prediccions <- predict(model_refinat, salaris_df_reduit_sense_estudis)
+head(prediccions)
+rmse <- sqrt(mean((prediccions - salaris_df$sou_total_log)^2))
+print(paste("RMSE del model:", rmse))
+
+```
+
+
+## MODEL NO SUPERVISAT:    
+
+Farem servir el mètode de clustering, que és un dels més utilitzats i en el que les dades s'agrupen dins d’un mateix clúster quan tenen una alta similitud i alhora són fàcilment distingibles d'altres grups.
+Farem servir FAMD, ja que tenim totes excepte una variables categòriques. L'anàlisi es fa sobre sobre el dataset 'salaris_df_no_sup'.
+
+Per problemes de rendiment en l'execució s'ha reduït el dataset a 1000 registres.
+```{r}
+
+if(!require(cluster)){
+  install.packages("cluster")
+}
+if(!require(factoextra)){
+  install.packages("factoextra")
+}
+if(!require(dplyr)){
+  install.packages("dplyr")
+}
+if(!require(uwot)){
+  install.packages( "uwot")
+}
+if(!require(FactoMineR)){
+  install.packages( "FactoMineR")
+}
+
+# Cargar las librerías
+library(cluster)
+library(factoextra)
+library(dplyr)
+library(uwot)
+library(FactoMineR)
+
+# FArm un subset aleatori de 1000 registres perquè hi ha problemes en l'execució
+set.seed(123)  # Per fer la mostra reproductible
+df_sub <- salaris_df_no_sup[sample(1:nrow(salaris_df_no_sup), 1000), ]
+df_sub$sou_total <- cut(df_sub$sou_total, breaks = 3, labels = c("baix", "mitjà", "alt"))
+
+# Fer MCA sobre variables categòriques (no incloguis 'salario' original)
+mca_res <- MCA(df_sub %>% select(-sou_total), graph = FALSE)
+res_famd <- FAMD(df_sub, graph = FALSE)
+#  Visualitzar individus
+fviz_mca_ind(res_famd, 
+             label = "none", 
+             habillage = df_sub$genere, 
+             addEllipses = TRUE, 
+             palette = "jco")
+
+# Clustering sobre components MCA (exemple amb k-means)
+mca_vars <- res_famd$ind$coord  # Coordenades individuals
+
+k_res <- kmeans(mca_vars, centers = 3)
+fviz_cluster(list(data = mca_vars, cluster = k_res$cluster))
+
+
+```
+Mirem com contribueixen les variables:
+
+```{r}
+fviz_famd_var(res_famd, repel = TRUE)
+```
+
+
+
+
+## Aplica una prova per contrast d'hipòtesi ##
+
+
+Plantegem la següent pregunta:
+"La mitjana del salari total anual a temps complert dels homes de raça blanca són més grans que la de la resta dels grups de persones".
+
+### Hipòtesi del contrast   
+
+La hipòtesi nul·la i alternativa serien:   
+
+H0 : μ1 − μ2 ≥ 0 (el salari mitjà dels homes blancs no és més gran: hipòtesi nul·la)
+H1 : μ1 − μ2 < 0 (el salari mitjà dels homes blancs és més gran: hipòtesi alternativa)
+on μ1 denota la mitjana del salari dels homes de raça blanca i μ2 la mitjana del salari de la resta de grups de persones.
+
+Test a aplicar: 
+Pel teorema del límit central, podem assumir normalitat, ja que tenim una mostra amb moltes observacions i es vol fer un test sobre la mitjana. Per tant, apliquem un test d’hipòtesis de dues mostres sobre la mitjana. Aplicarem la distribució t, atès que no es coneix la variància de la població.
+Es tracta de dues mostres independents amb variància desconeguda i diferent. És un test unilateral.
+Considerarem un nivell de confiança del 99%.
+
+Crearem les dues mostres, una per a cada conjunt de població.
+
+```{r}
+df_1 <- subset(salaris_df_hipotesis, genere == "MAN" & raca == "WHITE" & sou_total < 150000 & sou_total > 15000 )$sou_total
+df_2 <- subset(salaris_df_hipotesis, (!(genere == "MAN" & raca == "WHITE" ) & sou_total < 150000 & sou_total > 15000))$sou_total
+```
+
+Apliquem el test:
+```{r}
+t.test(df_1, df_2, alternative="greater", var.equal=FALSE, conf.level=0.99)
+```
+
+El p-value és molt inferior a 0.01, (ja que usem un 99% de confiança), rebutgem clarament 
+la hipòtesi nul·la.
+L'interval de confiança (el valor que està a Inf) és positiu i la diferència és significativa.
+La mitjana x (homes de raça blanca) és aproximadament 8.000€ més alt que la mitjana y.
+
+Resposta al test d'hipòtesi:
+
+El salari mig dels homes de raça blanca és superior al de la resta de grups poblacionals.
