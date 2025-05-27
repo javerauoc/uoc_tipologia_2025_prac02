@@ -593,12 +593,8 @@ de l'enquesta, només ens quedarem amb el mes i l'any
 
 ```{r}
 salaris_df$timestamp <- as.POSIXct(salaris_df$timestamp, format = "%m/%d/%Y %H:%M:%S")
-
 salaris_df$mes_any <- as.factor(format(salaris_df$timestamp, "%m/%Y"))
 salaris_df <- subset(salaris_df, select = -timestamp)
-
-
-
 ```
 - Passem a factors la resta de variables. Fixarem un màxim
 de 15 categries per variable
@@ -606,9 +602,6 @@ de 15 categries per variable
 
 ```{r}
 
-
-library(dplyr)
-library(forcats)
 library(dplyr)
 library(forcats)
 
@@ -618,65 +611,62 @@ salaris_df <- salaris_df %>%
     .fns = ~ fct_lump(as.factor(.x), n = 15)
   ))
 
-
 ```
 
 
-##Valors extrems
+**Valors extrems**
 
 Començarem l'estudi de possibles outliers.Per fer-ho, mirarem els quartils de
 les variables numèriques.
 
 
 ```{r}
-#, "salari_eur"
-
 summary(salaris_df[, sapply(salaris_df, is.numeric)])
-
 ```
 Podem veure que:
-
 
 ### **Salari a temps complet (`salari_temps_complert_euros`)**
 - **Minim:** 0  Hi ha casos amb salari 0 (pot ser errors o persones sense salari base). Assumirem 
 que l'enquesta tothom té salari, així que els considerarem com errors
-- **1r quartil (Q1):** 51.713 € → El **25% més baix** dels registres guanya **menys de 51.713 €**.
-- **Mediana (Q2):** 72.023 € → La meitat dels registres tenen un salari **inferior a 72.023 €** i l’altra meitat superior.
-- **Mitjana:** 85.176 € → El salari **promig** és 85.176 €,  superior a la mediana. Això ens indica que hi han valors alts que estàn
+- **1r quartil (Q1):** 51.713 €.  Significa que el **25% més baix** dels registres guanya **menys de 51.713 €**.
+- **Mediana (Q2):** 72.023 € La meitat dels registres tenen un salari **inferior a 72.023 €** i l’altra meitat superior.
+- **Mitjana:** 85.176 € El salari **promig** és 85.176 €,  superior a la mediana. Això ens indica que hi han valors alts que estàn
 afectant a la mitjana (possibles outliers).
-- **3r quartil (Q3):** 103.040 € → El **25% més alt** guanya **més de 103.040 €**.
-- **Màxim:** 9.200.000 € → Hi ha un salari extremadament alt, que podria ser una dada errònia o corresponent a un alt directiu.
+- **3r quartil (Q3):** 103.040 € . El **25% més alt** guanya **més de 103.040 €**.
+- **Màxim:** 9.200.000 €.  Hi ha un salari extremadament alt, que podria ser una dada errònia o corresponent a un alt directiu. 
+
+Haurem de limitar el sou màxim per no distorsionar l'estudi.
 
 ### **Extres (`extres_euros`)**
 - **Minim:** 0 Hi ha persones que no tenen extres (el considerem normal)
 - **1r quartil (Q1):** 0. El **25% més baix** no té cap extra.
 - **Mediana (Q2):** 0 .La meitat dels registres no reben extres. Això vol dir que més de la meitat
 dels enquestats no reben hores extres
-- **Mitjana:** 8.727 € → Tot i que la mediana és **0**, la mitjana és **8.727 €**, indicant que algunes persones tenen extres alts que pugen el promig (seria
-un cas similar a l'anterior)
-- **3r quartil (Q3):** 5.520 € → El **25% superior** rep més de 5.520 € en extres.
-- **Màxim:** 1.380.000 € → Existeix un registre massa alt (o un cas especial o una dada incorrecta.)
+- **Mitjana:** 8.727 € . Tot i que la mediana és **0**, la mitjana és **8.727 €**, indicant que algunes persones tenen extres alts que pugen el promig (seria un cas similar a l'anterior del salari). Dades no normalment distribuïdes.
+- **3r quartil (Q3):** 5.520 € → El **25% superior** cobra més de 5.520 € en extres.
+- **Màxim:** 1.380.000 € → Existeix un registre massa alt (o un cas especial o una dada incorrecta).
+
 
 La distribució dels ingressos extres sembla **molt asimètrica**, amb una **majoria de registres a 0**, però amb alguns casos amb **valors molt alts** que eleven la mitjana. Analitzarem els possibles outliers que puguin 
 distorsionar l'anàlisi.
 
 
-Farem una exploració visual;
+Per fer-ho, farem una exploració visual;
 
-```{r}
+```{r , echo=FALSE, fig.width=5, fig.height=3}
 library(ggplot2)
 library(patchwork) # Paquet per combinar gràfics
 
 # Creem els dos boxplots
 boxplot_salari <- ggplot(salaris_df, aes(y = salari_temps_complert_euros)) +
   geom_boxplot(fill = "steelblue", alpha = 0.6) +
-  labs(title = "Distribució del salari a temps complet (Euros)",
+  labs(title = "Salari a temps complet",
        y = "Salari (€)") +
   theme_minimal()
 
 boxplot_extres <- ggplot(salaris_df, aes(y = extres_euros)) +
   geom_boxplot(fill = "tomato", alpha = 0.6) +
-  labs(title = "Distribució dels extres (Euros)",
+  labs(title = "Hores extres",
        y = "Extres (€)") +
   theme_minimal()
 
@@ -684,49 +674,21 @@ boxplot_extres <- ggplot(salaris_df, aes(y = extres_euros)) +
 boxplot_salari + boxplot_extres
 
 ```
-```{r}
-ggplot(salaris_df, aes(x = salari_temps_complert_euros)) +
-  geom_histogram(binwidth = 5000, fill = "steelblue", color = "black", alpha = 0.7) +
-  labs(title = "Histograma del salari a temps complet (Euros)",
-       x = "Salari (€)",
-       y = "Nombre de registres") +
-  theme_minimal()
 
-```
 
 
 Com podem veure, els boxplots no apareixen correctament dibuixats. Això és degut 
 a l'existència de valors massa grans. Farem una coversió logarítmca de les dades
 
-```{r}
-ggplot(salaris_df, aes(y = log10(salari_temps_complert_euros))) +
-  geom_boxplot(fill = "steelblue", alpha = 0.6) +
-  labs(title = "Distribució del salari a temps complet (log Euros)",
-       y = "log(Salari €)") +
-  theme_minimal()
-
-
-```
-
-
-```{r}
-
-ggplot(salaris_df, aes(y = salari_temps_complert_euros)) +
-  geom_boxplot(fill = "steelblue", alpha = 0.6, outlier.shape = 16) + # Afegim forma als outliers
-  coord_cartesian(ylim = c(0, 300000)) + # Ajustem el límit de l'eix Y
-  labs(title = "Distribució del salari a temps complet (Euros)",
-       y = "Salari (€)") +
-  theme_minimal()
-
-```
 
 **Variable salari:**
 
-La teva sortida mostra un valor màxim extremadament alt (4.080e+09), cosa que podria indicar la presència d'outliers o fins i tot errors en les dades. Això afecta la mitjana (2.319e+05), que és molt més alta que la mediana (6.808e+04), suggerint que alguns valors extrems estan distorsionant la distribució.
+La sortida mostra un valor màxim extremadament alt (4.080e+09), que ens indica
+la presència d'outliers, afectant a la mitjana que és molt més alta que la mediana.
 
 Visualment, podem veure com la representació ens demostra presència outliers.
 
-```{r}
+```{r , echo=FALSE, include=FALSE}
 
 numeric_cols <- sapply(salaris_df, is.numeric)
 df_numeric  <- salaris_df[, numeric_cols]
@@ -736,6 +698,9 @@ stats_list <- lapply(df_numeric, boxplot.stats)
 
 # Visualitzar la llista amb els resultats (inclou els outliers per cada variable)
 print(stats_list)
+```
+
+```{r ,echo=FALSE, eval=FALSE}
 
 # 3. Dibuixar els boxplots de totes les variables numèriques en una única figura
 boxplot(df_numeric,
@@ -745,7 +710,7 @@ boxplot(df_numeric,
         border = "blue")   # Color dels contorns (opcional)
 
 ```
-```{r}
+```{r , echo=FALSE, eval=FALSE}
 library(ggplot2)
 
 # Histograma del salari temps complet
@@ -767,14 +732,16 @@ ggplot(salaris_df, aes(x = extres_euros)) +
 ```
 
 
-El nostre estudi es centrarà en sous que es considerin "més normals", valors
+Per tot això, el nostre estudi es centrarà en sous que es considerin "més normals", valors
 del rang de [15.000,150.000] euros. 
 
 
-```{r}
+```{r , echo=FALSE}
 num_regs_baix_salari <- sum(salaris_df$salari_temps_complert_euros < 15000, na.rm = TRUE)
 num_regs_alt_salari <- sum(salaris_df$salari_temps_complert_euros > 150000, na.rm = TRUE)
+```
 
+```{r}
 print(paste("Registres < 15.000 euros:", num_regs_baix_salari))
 print(paste("Registres > 150.000 euros:", num_regs_alt_salari))
 
@@ -783,17 +750,14 @@ print(paste("Registres > 150.000 euros:", num_regs_alt_salari))
 
 
 ```{r}
-library(dplyr)
-
 salaris_df_filtrat <- salaris_df %>%
   filter(salari_temps_complert_euros >= 15000 & salari_temps_complert_euros <= 150000)
-
 ```
 
 
 
 Tornem a avaluar els resultats:
-```{r}
+```{r ,echo=FALSE}
 #, "salari_eur"
 
 summary(salaris_df_filtrat[, sapply(salaris_df_filtrat, is.numeric)])
@@ -801,7 +765,7 @@ summary(salaris_df_filtrat[, sapply(salaris_df_filtrat, is.numeric)])
 ```
 
 
-```{r boxplot, fig.width=5, fig.height=4}
+```{r boxplot,echo=FALSE, include=FALSE,fig.width=5, fig.height=4}
 salaris_df<-salaris_df_filtrat[]
 rm(salaris_df_filtrat)
 
@@ -813,6 +777,9 @@ stats_list <- lapply(df_numeric, boxplot.stats)
 
 # Visualitzar la llista amb els resultats (inclou els outliers per cada variable)
 print(stats_list)
+```
+
+```{r boxplot, ,echo=FALSE, fig.width=5, fig.height=4}
 
 # 3. Dibuixar els boxplots de totes les variables numèriques en una única figura
 boxplot(df_numeric,
@@ -824,7 +791,7 @@ boxplot(df_numeric,
 ```
 Eliminems el outliers
 
-```{r}
+```{r, echo=FALSE}
 library(dplyr)
 
 # Calcular Q1, Q3 i IQR per a cada columna
@@ -862,7 +829,7 @@ També farem un altre columna amb el logaritmr del salari. Aquesta variable la f
 servir en els models d'aprenentatge posteriors perque, donat la disparitat de salaris, és 
 preferible entrenar els models fent servir la versió logarítmica del sou.
 
-```{r}
+```{r, echo=FALSE}
 salaris_df <- salaris_df %>%
   mutate(sou_total = salari_temps_complert_euros + extres_euros)
 
@@ -886,7 +853,7 @@ salaris_df_clean <- salaris_df %>%
 
 
 
-```{r}
+```{r, echo=FALSE}
 # Comprovar la distribució després de la neteja
 summary(salaris_df_clean[, c("sou_total")])
 salaris_df<-salaris_df_clean[]
@@ -913,71 +880,80 @@ salaris_df_no_sup<-salaris_df_no_sup %>% select(-sou_total_log)
 
 ```
 
+Finalment, i abans de començar l'anàl·lis amb models, treurem algunes gràfiques de salari per sector i gènere.
 
+```{r,echo=FALSE}
 
-
-
-##PREGUNTA 4: MODEL SUPERVISAT I NO SUPERVISAT.##     
-
-## MODEL SUPERVISAT: REGRESSIÓ LINEAL  
-
-## Presentació visual de la variable objectiu
-
-``` {r fig.width=6, fig.height=3}
-ggplot(salaris_df, aes(x = sou_total)) +
-  geom_histogram(fill = "skyblue", bins = 30) +
-  labs(title = "Distribució del sou total", x = "Sou total", y = "Freqüència") +
-  theme_minimal()
-
-```
-
-## Conversió de variables categòriques a numèriques 
-
-Això és necesssari per poder-se processar pel model de regressió lineal
-
-```{r}
-
-salaris_df_ml <- salaris_df_sup %>%
-  mutate(across(where(is.factor), as.numeric))
-
-## Eliminem moneda i pais perque no ens aporta al model
-
-salaris_df_reduit <- salaris_df_ml %>%
-  select(-mes_any, -sou_total)
-
-# Crear el nou model de regressió lineal
-model_reduit <- lm(sou_total_log ~ ., data = salaris_df_reduit)
-
-# Resum del nou model
-summary(model_reduit)
-
+# Creació de la gràfica
+ggplot(salaris_df_sup, aes(x = sector, y = sou_total, fill = genere)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Distribució Salarial per Sector i Gènere",
+       x = "Sector",
+       y = "Salari Total") +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
 
 ```
+Visualment podem veure com, independentment del sector, els homes guanyen més que les dones.
+
+
+
+## PREGUNTA 4: MODEL SUPERVISAT I NO SUPERVISAT.##     
+
+**MODEL SUPERVISAT: RANDOM FOREST**
+
+Farem servir RandomForest que és una versió millorada dels decissions trees (son models combinats a base de decission trees).
+
+Solen funcionar millor que els model de regressió lineal i les variables presenten 
+relacions "amagades" que la combinació lineal de la regressió no captura.
 
 
 
 ```{r}
+library(tidyverse)
+library(randomForest)
 
-salaris_df_reduit_sense_estudis <- salaris_df_reduit %>%
-  select(-nivell_estudis)
+salaris_df_sup <- salaris_df[]
 
-model_refinat  <- lm(sou_total_log ~ ., data = salaris_df_reduit_sense_estudis)
+# Filtrar i preparar el dataset
+salaris_df_sup <- salaris_df_sup %>% drop_na(sou_total_log)  # Eliminem files amb valors perduts
 
-summary(model_refinat)
+salaris_df_sup <- salaris_df_sup %>%
+  mutate(across(c(edat, sector, lloc_feina, nivell_estudis, genere, raca), as.factor))
 
+set.seed(123) # Per fer el resultat replicable
+
+# Divisió en train/test (80% entrenament, 20% test)
+train_index <- sample(seq_len(nrow(salaris_df_sup)), size = 0.8 * nrow(salaris_df_sup))
+train <- salaris_df_sup[train_index, ]
+test <- salaris_df_sup[-train_index, ]
+
+model_rf <- randomForest(sou_total_log ~ ., data = train, ntree = 500, mtry = 3, importance = TRUE)
+
+# Veure importància de les variables
+importance(model_rf)
+
+pred_test <- predict(model_rf, newdata = test)
+
+# Avaluar el rendiment amb MSE i R²
+mse_rf <- mean((pred_test - test$sou_total_log)^2)
+r2_rf <- 1 - (sum((pred_test - test$sou_total_log)^2) / sum((test$sou_total_log - mean(test$sou_total_log))^2))
+
+cat("MSE:", mse_rf, "\nR²:", r2_rf)
 
 ```
+El R2 = 0.9953 indica que el model explica gairebé tota la variabilitat del salari, i el MSE = 0.00075 és extremadament baix, indicant que l'error en les prediccions és molt petit. Per entendre la sortida del model, hem de recordar
+que %IncMSE l'mpacte en l'error de predicció (com més alt, més important és la variable).
 
-- Avaluacions del model
+Per tant, les variables més influents en el salari són el sector, l'edat (com més edat millor sours), experiència, rol.
 
-```{r}
-prediccions <- predict(model_refinat, salaris_df_reduit_sense_estudis)
-head(prediccions)
-rmse <- sqrt(mean((prediccions - salaris_df$sou_total_log)^2))
-print(paste("RMSE del model:", rmse))
 
-```
+
+
 
 
 ## MODEL NO SUPERVISAT:    
@@ -1016,7 +992,7 @@ set.seed(123)  # Per fer la mostra reproductible
 df_sub <- salaris_df_no_sup[sample(1:nrow(salaris_df_no_sup), 1000), ]
 df_sub$sou_total <- cut(df_sub$sou_total, breaks = 3, labels = c("baix", "mitjà", "alt"))
 
-# Fer MCA sobre variables categòriques (no incloguis 'salario' original)
+# Fer MCA sobre variables categòriques 
 mca_res <- MCA(df_sub %>% select(-sou_total), graph = FALSE)
 res_famd <- FAMD(df_sub, graph = FALSE)
 #  Visualitzar individus
@@ -1040,22 +1016,18 @@ Mirem com contribueixen les variables:
 fviz_famd_var(res_famd, repel = TRUE)
 ```
 
-
-
-
 ## Aplica una prova per contrast d'hipòtesi ##
 
-
 Plantegem la següent pregunta:
-"La mitjana del salari total anual a temps complert dels homes de raça blanca són més grans que la de la resta dels grups de persones".
+"La mitjana del salari total anual a temps complert dels homes de raca blanca són més grans que la de la resta dels grups de persones".
 
 ### Hipòtesi del contrast   
 
 La hipòtesi nul·la i alternativa serien:   
 
-H0 : μ1 − μ2 ≥ 0 (el salari mitjà dels homes blancs no és més gran: hipòtesi nul·la)
-H1 : μ1 − μ2 < 0 (el salari mitjà dels homes blancs és més gran: hipòtesi alternativa)
-on μ1 denota la mitjana del salari dels homes de raça blanca i μ2 la mitjana del salari de la resta de grups de persones.
+H0 : u1 - u2 >= 0 (el salari mitjà dels homes blancs no és més gran: hipòtesi nul·la)
+H1 : u1 - u2 < 0 (el salari mitjà dels homes blancs és més gran: hipòtesi alternativa)
+on u1 denota la mitjana del salari dels homes de raça blanca i u2 la mitjana del salari de la resta de grups de persones.
 
 Test a aplicar: 
 Pel teorema del límit central, podem assumir normalitat, ja que tenim una mostra amb moltes observacions i es vol fer un test sobre la mitjana. Per tant, apliquem un test d’hipòtesis de dues mostres sobre la mitjana. Aplicarem la distribució t, atès que no es coneix la variància de la població.
@@ -1063,6 +1035,8 @@ Es tracta de dues mostres independents amb variància desconeguda i diferent. É
 Considerarem un nivell de confiança del 99%.
 
 Crearem les dues mostres, una per a cada conjunt de població.
+
+
 
 ```{r}
 df_1 <- subset(salaris_df_hipotesis, genere == "MAN" & raca == "WHITE" & sou_total < 150000 & sou_total > 15000 )$sou_total
@@ -1077,8 +1051,13 @@ t.test(df_1, df_2, alternative="greater", var.equal=FALSE, conf.level=0.99)
 El p-value és molt inferior a 0.01, (ja que usem un 99% de confiança), rebutgem clarament 
 la hipòtesi nul·la.
 L'interval de confiança (el valor que està a Inf) és positiu i la diferència és significativa.
-La mitjana x (homes de raça blanca) és aproximadament 8.000€ més alt que la mitjana y.
+La mitjana x (homes de raça blanca) és aproximadament 8.000 euros  més alt que la mitjana y.
 
 Resposta al test d'hipòtesi:
 
 El salari mig dels homes de raça blanca és superior al de la resta de grups poblacionals.
+
+
+
+
+
